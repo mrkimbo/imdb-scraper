@@ -1,0 +1,20 @@
+{
+  "name": "imdb-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "scrape": "node scraper.js",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.14.1",
+    "cheerio": "^0.19.0",
+    "express": "^4.13.3",
+    "mongoose": "^4.2.4",
+    "request": "^2.65.0"
+  }
+}
