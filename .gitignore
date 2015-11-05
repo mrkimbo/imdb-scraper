@@ -1,0 +1,8 @@
+### Node template
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependency directory
+node_modules
