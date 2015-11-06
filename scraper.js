@@ -1,6 +1,3 @@
-/**
- * Created by kim.holland on 05/11/15.
- */
 
 var request = require('request'),
     cheerio = require('cheerio'),
@@ -9,7 +6,7 @@ var request = require('request'),
     DB_STATE = require('mongoose/lib/connectionstate'),
     Film = require('./lib/film.schema');
 
-var results, operations = [];
+var results, queue = [];
 
 mongoose.connection.on('connected', function () {
     if (results) {
@@ -64,43 +61,39 @@ function updateDB(films) {
             if (result) {
                 console.log('Existing film: ' + film.title);
             } else {
-                saveFilm(film);
+                var operation = saveFilm(film)
+                    .then(function() {
+                        console.log('Film saved: ' + film.title);
+                        dequeue(operation);
+                    });
             }
+            dequeue(query);
         });
 
-        operations.push(query);
+        enqueue(query);
     });
-
-    Promise.all(operations).then(function () {
-        // if any more operations resulted from the queries then re-evaluate:
-        Promise.all(operations).then(function() {
-            console.log('> All DB operations complete');
-            exit();
-        });
-    });
-
-
-    //checkFinished();
 }
 
 function saveFilm(film) {
     console.log('New Film: ' + film.title);
-    operations.push(new Promise(function (resolve) {
+    var promise = new Promise(function (resolve) {
         film.save(function (err) {
-            console.log(err || 'Film saved: ' + film.title);
             resolve();
         });
-    }));
+    });
+    enqueue(promise);
+    return promise;
 }
 
-function checkFinished(prevCount) {
-    console.log('checkFinished()', prevCount + ' items');
-    if(operations.length !== prevCount) {
-        Promise.all(operations).then(function () {
-            checkFinished(operations.length);
-        });
-    } else {
-        console.log('> All operations complete');
+function enqueue(item) {
+    queue.push(item);
+}
+
+function dequeue(item) {
+    var idx = queue.indexOf(item);
+    if(idx) queue.splice(idx, 1);
+
+    if(!queue.length) {
         exit();
     }
 }
