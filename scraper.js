@@ -5,11 +5,10 @@
 var request = require('request'),
     cheerio = require('cheerio'),
     mongoose = require('mongoose'),
+    Config = require('./lib/config'),
     DB_STATE = require('mongoose/lib/connectionstate'),
     Film = require('./lib/film.schema');
 
-var SOURCE_URL = 'http://www.imdb.com/user/ur28880908/watchlist';
-var DB_NAME = 'localhost/xs3-movies';
 var results, operations = [];
 
 mongoose.connection.on('connected', function () {
@@ -17,7 +16,7 @@ mongoose.connection.on('connected', function () {
         updateDB(results);
     }
 });
-mongoose.connect('mongodb://' + DB_NAME);
+mongoose.connect('mongodb://' + Config.DB_HOST + Config.DB_NAME);
 
 fetch();
 
@@ -25,14 +24,14 @@ fetch();
 function fetch() {
     console.log('fetch()');
 
-    request(SOURCE_URL, function (err, response, body) {
+    request(Config.SOURCE_URL, function (err, response, body) {
         if (err) {
             console.log(err);
             return;
         }
 
         results = scrapeFilms(body);
-        if (mongoose.connection.readyState === DB_STATE.connected) {
+        if (isConnected()) {
             updateDB(results);
         }
     });
@@ -79,6 +78,9 @@ function updateDB(films) {
             exit();
         });
     });
+
+
+    //checkFinished();
 }
 
 function saveFilm(film) {
@@ -91,6 +93,21 @@ function saveFilm(film) {
     }));
 }
 
+function checkFinished(prevCount) {
+    console.log('checkFinished()', prevCount + ' items');
+    if(operations.length !== prevCount) {
+        Promise.all(operations).then(function () {
+            checkFinished(operations.length);
+        });
+    } else {
+        console.log('> All operations complete');
+        exit();
+    }
+}
+
+function isConnected() {
+    return mongoose.connection.readyState === DB_STATE.connected;
+}
 
 function exit() {
     console.log('exit');
